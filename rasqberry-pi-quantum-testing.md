@@ -287,7 +287,7 @@ sudo rpi-eeprom-update -a
 sudo reboot
 ```
 
-Install Dependenciew...
+Install Dependencies...
 ```bash
 sudo apt install dkms
 sudo apt install hailo-all
