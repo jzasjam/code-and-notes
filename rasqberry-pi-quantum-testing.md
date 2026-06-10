@@ -273,7 +273,7 @@ Participants design a quantum circuit; the measurement result determines which d
 
 ---
 
-## Part 3: AI HAT+ — Simple CNN Example
+## Part 3: AI HAT+ 
 
 ### INSTALL AI HAT+
 https://www.raspberrypi.com/news/get-started-with-the-raspberry-pi-ai-hat/
@@ -313,339 +313,401 @@ Contrasting *classical neural networks* (which the AI HAT+ accelerates) with *qu
 
 ---
 
-### 3.2 Simple CNN Example — MNIST Digit Classifier
-
-This example trains a small CNN to recognise handwritten digits (the MNIST dataset — the standard "hello world" of deep learning), then runs inference on the Raspberry Pi using the AI HAT+. It runs entirely on the Pi with no cloud required.
-
-**Step 1: Set up the environment**
-
-Open a terminal on the Pi and create a fresh virtual environment for the AI demo:
-
-```bash
-python3 -m venv ~/cnn_demo_env
-source ~/cnn_demo_env/bin/activate
-pip install tensorflow numpy matplotlib pillow
-```
-
-> **Note on the AI HAT+:** The Hailo accelerator uses Hailo's `hailort` runtime and a model compiler to convert trained models to `.hef` format. For simplicity, this demo runs TensorFlow inference on the **Pi CPU** first, so participants can see training and inference work without HAT+ setup complexity. Section 3.4 covers accelerating it with the HAT+.
-
+## Raspberry Pi AI HAT+ — CNN Classification Demo Guide
+### Running and Benchmarking MobileNet on the Hailo Accelerator
 
 ---
 
-**Step 2: Create the training script**
+## About This Guide
 
-Download the dataset and place into '~/Rasqberry/.keras/datasets'
-# If issues when running the script just grab it from a browser:
-https://storage.googleapis.com/tensorflow/tf-keras-datasets/mnist.npz
-
-
-Save the following as `~/cnn_demo_env/train_mnist_cnn.py`:
-
-```python
-"""
-Simple CNN for MNIST digit classification
-Event demo: Introduction to Convolutional Neural Networks
-Runs on Raspberry Pi 5 (CPU). For AI HAT+ acceleration, see convert step.
-"""
-
-import numpy as np
-import tensorflow as tf
-from tensorflow.keras import layers, models
-import matplotlib
-matplotlib.use('Agg')  # Non-interactive backend for Pi
-import matplotlib.pyplot as plt
-import os
-
-print("TensorFlow version:", tf.__version__)
-print("Loading MNIST dataset...")
-
-# --- Load and preprocess data ---
-(x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
-
-# Normalise pixel values to [0, 1] and add channel dimension
-x_train = x_train.astype('float32') / 255.0
-x_test  = x_test.astype('float32') / 255.0
-x_train = x_train[..., np.newaxis]  # Shape: (60000, 28, 28, 1)
-x_test  = x_test[..., np.newaxis]   # Shape: (10000, 28, 28, 1)
-
-print(f"Training samples: {len(x_train)}, Test samples: {len(x_test)}")
-
-# --- Build the CNN ---
-model = models.Sequential([
-    # First convolutional block
-    layers.Conv2D(32, (3, 3), activation='relu', input_shape=(28, 28, 1)),
-    layers.MaxPooling2D((2, 2)),
-
-    # Second convolutional block
-    layers.Conv2D(64, (3, 3), activation='relu'),
-    layers.MaxPooling2D((2, 2)),
-
-    # Classifier head
-    layers.Flatten(),
-    layers.Dense(64, activation='relu'),
-    layers.Dropout(0.5),
-    layers.Dense(10, activation='softmax')  # 10 output classes (digits 0-9)
-])
-
-model.summary()
-
-# --- Compile and train ---
-model.compile(
-    optimizer='adam',
-    loss='sparse_categorical_crossentropy',
-    metrics=['accuracy']
-)
-
-print("\nTraining... (this takes ~5-10 minutes on Pi CPU)")
-history = model.fit(
-    x_train, y_train,
-    epochs=5,
-    batch_size=64,
-    validation_split=0.1,
-    verbose=1
-)
-
-# --- Evaluate ---
-test_loss, test_acc = model.evaluate(x_test, y_test, verbose=0)
-print(f"\nTest accuracy: {test_acc:.4f}  ({test_acc*100:.1f}%)")
-
-# --- Save model ---
-model.save(os.path.expanduser('~/cnn_demo_env/mnist_cnn.keras'))
-print("Model saved to ~/cnn_demo_env/mnist_cnn.keras")
-
-# --- Plot training history ---
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
-ax1.plot(history.history['accuracy'], label='Training')
-ax1.plot(history.history['val_accuracy'], label='Validation')
-ax1.set_title('Model Accuracy')
-ax1.set_xlabel('Epoch')
-ax1.set_ylabel('Accuracy')
-ax1.legend()
-ax2.plot(history.history['loss'], label='Training')
-ax2.plot(history.history['val_loss'], label='Validation')
-ax2.set_title('Model Loss')
-ax2.set_xlabel('Epoch')
-ax2.set_ylabel('Loss')
-ax2.legend()
-plt.tight_layout()
-plt.savefig(os.path.expanduser('~/cnn_demo_env/training_history.png'))
-print("Training plot saved to ~/cnn_demo_env/training_history.png")
-```
-
-Run the training:
-```bash
-cd ~/cnn_demo_env
-python train_mnist_cnn.py
-```
-
-Expected output: ~98% test accuracy after 5 epochs.
+This guide covers running a **real CNN image classification demo** on the Raspberry Pi AI HAT+ (Hailo-8L or Hailo-8) without needing the full Hailo Dataflow Compiler or SDK conversion toolchain. It uses **DeGirum PySDK**, which provides pre-built `.hef` model files with integrated pre/post-processing, and builds up to a direct **CPU vs HAT+ speed comparison** that makes the value of the accelerator immediately tangible.
 
 ---
 
-**Step 3: Run inference on new images**
+## Prerequisites
 
-Save the following as `~/cnn_demo_env/run_inference.py`:
+Before starting, verify the AI HAT+ is detected by the Pi:
 
-```python
-"""
-Run inference with the trained MNIST CNN.
-Shows example predictions with visualisation.
-"""
-
-import numpy as np
-import tensorflow as tf
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import os
-
-# Load model
-model = tf.keras.models.load_model(
-    os.path.expanduser('~/cnn_demo_env/mnist_cnn.keras')
-)
-
-# Load test set
-(_, _), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
-x_test = x_test.astype('float32') / 255.0
-x_test_expanded = x_test[..., np.newaxis]
-
-# Pick 16 random test images
-indices = np.random.choice(len(x_test), 16, replace=False)
-images  = x_test_expanded[indices]
-labels  = y_test[indices]
-
-# Predict
-predictions = model.predict(images, verbose=0)
-predicted_classes = np.argmax(predictions, axis=1)
-confidences       = np.max(predictions, axis=1)
-
-# Plot
-fig, axes = plt.subplots(4, 4, figsize=(8, 8))
-for i, ax in enumerate(axes.flat):
-    ax.imshow(images[i].squeeze(), cmap='gray')
-    correct = predicted_classes[i] == labels[i]
-    colour  = 'green' if correct else 'red'
-    ax.set_title(
-        f"Pred: {predicted_classes[i]} ({confidences[i]*100:.0f}%)\nTrue: {labels[i]}",
-        color=colour, fontsize=8
-    )
-    ax.axis('off')
-
-plt.suptitle('CNN Inference on MNIST — green=correct, red=wrong', fontsize=10)
-plt.tight_layout()
-plt.savefig(os.path.expanduser('~/cnn_demo_env/inference_results.png'))
-print("Saved inference_results.png")
-print(f"\nResults: {np.sum(predicted_classes == labels)}/16 correct")
-```
-
-Run inference:
 ```bash
-python run_inference.py
-```
-
-Open the saved PNGs with the Pi's image viewer to see the results.
-
----
-
-### 3.3 What Does the CNN Actually Do? (Explaining to Participants)
-
-Use this explanation when walking participants through the code:
-
-**Convolutional layers** scan across the image with small filters (3×3 pixel windows). Each filter learns to detect a feature — an edge, a curve, a corner. Early layers detect simple features; deeper layers combine them into complex patterns like "closed loop at the top" (digit 8) or "vertical stroke" (digit 1).
-
-**Max pooling** reduces the spatial size, making the network tolerant of small shifts or distortions in where the digit appears.
-
-**Dense layers** take the extracted features and learn which combination means digit 0, which means digit 1, and so on.
-
-**Training** adjusts millions of numerical weights by comparing predictions to correct answers and nudging weights slightly using backpropagation — gradient descent on the loss function.
-
----
-
-### 3.4 Accelerating with the AI HAT+ (Advanced)
-
-The AI HAT+ uses Hailo's runtime to run models in `.hef` (Hailo Executable Format). To use it:
-
-**Step 1: Install Hailo software**
-
-On the Pi with the HAT+ attached:
-```bash
-# Check if HAT+ is detected
 hailortcli fw-control identify
 ```
 
-If not installed, follow the official Hailo documentation at https://hailo.ai/developer-zone/ (free account required to download).
+You should see output like:
 
-**Step 2: Convert the TensorFlow model**
+```
+Identifying board
+Board Name: Hailo-8
+Device Architecture: HAILO8L        ← 13 TOPS variant
+  or
+Device Architecture: HAILO8         ← 26 TOPS variant
+```
 
-There is a known bug in certain TensorFlow versions where the bundled flatbuffers library is incompatible. To avoid erros, downgrade the flatbuffers package: 
+If this command is not found, install the Hailo runtime first:
 
 ```bash
-pip install flatbuffers==23.5.26
+sudo apt install hailort python3-hailort
 ```
 
-The Hailo Model Zoo and Dataflow Compiler convert standard formats (TFLite/ONNX) to `.hef`:
-
-```bash
-# First export to TFLite
-python3 - <<'EOF'
-import tensorflow as tf
-model = tf.keras.models.load_model('/home/rasqberry/cnn_demo_env/mnist_cnn.keras')
-converter = tf.lite.TFLiteConverter.from_keras_model(model)
-tflite_model = converter.convert()
-with open('/home/rasqberry/cnn_demo_env/mnist_cnn.tflite', 'wb') as f:
-    f.write(tflite_model)
-print("Saved mnist_cnn.tflite")
-EOF
-```
-
-Then use the Hailo Dataflow Compiler (requires the full Hailo SDK, typically on a more powerful machine) to compile to `.hef`, then copy back to the Pi.
-
-**Step 3: Run inference via hailort**
-
-```python
-from hailo_platform import (HEF, VDevice, HailoStreamInterface,
-                            InferVStreams, ConfigureParams)
-import numpy as np
-
-hef = HEF('mnist_cnn.hef')
-with VDevice() as target:
-    configure_params = ConfigureParams.create_from_hef(hef, interface=HailoStreamInterface.PCIe)
-    network_groups = target.configure(hef, configure_params)
-    network_group = network_groups[0]
-    with InferVStreams(network_group, {}, {}) as infer_pipeline:
-        # ... run inference batches
-        pass
-```
-
-> **For event day:** Unless Hailo SDK setup is pre-completed, using the CPU TFLite path (Section 3.2) is more reliable for a live demo. The AI HAT+ is best demonstrated using the Pi's built-in `rpicam` object detection demos, which come pre-compiled:
->
-> ```bash
-> rpicam-hello -t 0 --post-process-file \
->   /usr/share/rpi-camera-assets/hailo_yolov8_inference.json
-> ```
-> This runs YOLOv8 object detection at real-time speeds using the HAT+.
+Then reboot and retry.
 
 ---
 
-## Part 4: Suggested Event Structure
+### Step 1: Set Up the Environment
 
-### Option A: Guided Walkthrough (~60–90 minutes)
+Create a virtual environment for the AI HAT+ demos:
 
-| Time | Activity |
-|---|---|
-| 0–10 min | Introduction: classical vs quantum computing, what a qubit is |
-| 10–25 min | Bloch Sphere demo — participants apply gates and discuss superposition and phase |
-| 25–40 min | Raspberry Tie — run circuits on Aer simulator, watch LED results, discuss probabilistic measurement |
-| 40–50 min | GHZ demo — explain entanglement with scale demo up to 192 qubits |
-| 50–60 min | Fractals or Lights Out — creative/applied demo |
-| 60–80 min | AI HAT+ CNN demo — contrast with classical ML, run live object detection |
-| 80–90 min | Q&A and open exploration |
-
-### Option B: Explore-at-Your-Own-Pace (~90 minutes)
-
-Set up stations:
-
-| Station | Demo |
-|---|---|
-| 1 | Bloch Sphere (browser on Pi display) |
-| 2 | Raspberry Tie (LED array) |
-| 3 | GHZ state + Fractals |
-| 4 | AI HAT+ live camera object detection |
-| 5 | Guided Qiskit code — participants write their first quantum circuit |
-
-### First Quantum Circuit (Station 5 worksheet)
-
-Give participants this snippet to run:
-```python
-from qiskit import QuantumCircuit
-from qiskit_aer import AerSimulator
-
-# Create a 2-qubit circuit
-qc = QuantumCircuit(2, 2)
-
-# Put qubit 0 into superposition
-qc.h(0)
-
-# Entangle qubit 0 and qubit 1 (Bell state)
-qc.cx(0, 1)
-
-# Measure both qubits
-qc.measure([0, 1], [0, 1])
-
-# Draw the circuit
-print(qc.draw(output='text'))
-
-# Simulate
-simulator = AerSimulator()
-job     = simulator.run(qc, shots=1024)
-counts  = job.result().get_counts()
-print("\nMeasurement results (1024 shots):")
-print(counts)
+```bash
+python3 -m venv ~/hailo_demo_env
+source ~/hailo_demo_env/bin/activate
 ```
 
-**Expected output:**  
-Roughly 50% `00` and 50% `11` — never `01` or `10`. This is a **Bell state**: the simplest form of entanglement. Ask participants: *"Why do we never see 01 or 10?"*
+Install the required packages:
 
+```bash
+pip install degirum pillow numpy
+pip install tensorflow   # needed for the CPU benchmark in Step 3
+```
+
+> **Note:** The first `pip install tensorflow` on the Pi can take 10–15 minutes. 
+
+---
+
+### Step 2: Download a Test Image
+
+The demos below work on any JPEG or PNG. Download a simple test image to start with:
+
+```bash
+cd ~
+wget -O test_image.jpg \
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Cute_dog.jpg/320px-Cute_dog.jpg"
+```
+
+You can substitute any image you like — the model classifies from 1000 ImageNet categories, so everyday photos of animals, vehicles, food, and objects all work well.
+
+---
+
+### Step 3: Single Image Classification on the HAT+
+
+Save the following as `~/hailo_demo_env/hailo_classify.py`:
+
+```python
+"""
+ImageNet image classification on Raspberry Pi AI HAT+
+using DeGirum PySDK and a pre-built MobileNetV2 HEF.
+No camera required — classifies any JPEG or PNG image.
+
+Usage:
+    python hailo_classify.py [path/to/image.jpg]
+"""
+
+import degirum as dg
+import sys
+import time
+
+# Load MobileNetV2 from DeGirum's Hailo model zoo.
+# On first run this downloads the .hef and postprocessor (~5MB).
+# After that it runs fully offline from the local cache.
+print("Loading model...")
+zoo = dg.connect(dg.LOCAL, "degirum/hailo")
+
+# Change device_id to "HAILO8" if you have the 26 TOPS variant
+model = zoo.load_model(
+    "mobilenet_v2--224x224_quant_hailort_hailo8l_1",
+    device_id="HAILO8L"
+)
+
+# Use image path from command line, or default to test_image.jpg
+image_path = sys.argv[1] if len(sys.argv) > 1 else "test_image.jpg"
+print(f"Running inference on: {image_path}\n")
+
+start  = time.perf_counter()
+result = model(image_path)
+elapsed = (time.perf_counter() - start) * 1000
+
+print("Top 5 predictions:")
+print(f"{'Rank':<6} {'Label':<45} {'Confidence':>10}")
+print("-" * 63)
+for i, r in enumerate(result.results[:5], 1):
+    print(f"  {i:<4} {r['label']:<45} {r['score']*100:>8.1f}%")
+
+print(f"\nInference time: {elapsed:.1f} ms")
+```
+
+Run it:
+
+```bash
+cd ~/hailo_demo_env
+source ~/hailo_demo_env/bin/activate
+python hailo_classify.py ~/test_image.jpg
+```
+
+**Expected output (example):**
+
+```
+Loading model...
+Running inference on: /home/rasqberry/test_image.jpg
+
+Top 5 predictions:
+Rank   Label                                         Confidence
+---------------------------------------------------------------
+  1    golden retriever                                  82.4%
+  2    Labrador retriever                                 9.1%
+  3    kuvasz                                             2.3%
+  4    clumber spaniel                                    1.8%
+  5    Sussex spaniel                                     0.9%
+
+Inference time: 4.2 ms
+```
+
+## What is it doing?
+
+MobileNetV2 is a **convolutional neural network** designed specifically for edge devices. It takes a 224×224 pixel image, passes it through a series of convolutional layers that detect progressively complex features (edges → textures → object parts → whole objects), and outputs a probability score across 1000 ImageNet categories. The HAT+ runs the convolutional layers in hardware at high speed — the CPU only handles loading the image and reading the result.
+
+---
+
+### Step 4: CPU vs HAT+ Speed Comparison
+
+This is the most compelling demo — it runs the same MobileNetV2 model on the Pi CPU (via TensorFlow) and on the Hailo HAT+ (via DeGirum), then prints a direct comparison.
+
+Save the following as `~/hailo_demo_env/hailo_vs_cpu.py`:
+
+```python
+"""
+Speed comparison: CPU (TensorFlow) vs Hailo AI HAT+ (DeGirum)
+Runs MobileNetV2 image classification on both backends and compares throughput.
+
+Usage:
+    python hailo_vs_cpu.py [path/to/image.jpg]
+"""
+
+import degirum as dg
+import tensorflow as tf
+import numpy as np
+import time
+import sys
+from PIL import Image
+
+IMAGE_PATH = sys.argv[1] if len(sys.argv) > 1 else "test_image.jpg"
+N_RUNS     = 50  # number of inference passes to average over
+
+print(f"Image: {IMAGE_PATH}")
+print(f"Runs per backend: {N_RUNS}\n")
+
+# Preprocess the image once for TensorFlow (224x224, normalised to [0,1])
+img       = Image.open(IMAGE_PATH).convert("RGB").resize((224, 224))
+img_array = np.array(img).astype("float32") / 255.0
+img_batch = np.expand_dims(img_array, 0)
+
+# ----------------------------------------------------------------
+# CPU benchmark — TensorFlow MobileNetV2
+# ----------------------------------------------------------------
+print("=" * 50)
+print("BACKEND 1: CPU (TensorFlow MobileNetV2)")
+print("=" * 50)
+
+print("Loading model...")
+cpu_model = tf.keras.applications.MobileNetV2(weights="imagenet")
+
+print("Warming up (1 run)...")
+_ = cpu_model.predict(img_batch, verbose=0)
+
+print(f"Benchmarking ({N_RUNS} runs)...")
+start = time.perf_counter()
+for _ in range(N_RUNS):
+    cpu_preds = cpu_model.predict(img_batch, verbose=0)
+cpu_time = (time.perf_counter() - start) / N_RUNS * 1000
+
+decoded = tf.keras.applications.mobilenet_v2.decode_predictions(
+    cpu_preds, top=3
+)[0]
+print(f"\nTop result: {decoded[0][1]} ({decoded[0][2]*100:.1f}%)")
+print(f"Average inference time: {cpu_time:.1f} ms per image")
+
+# ----------------------------------------------------------------
+# HAT+ benchmark — DeGirum PySDK
+# ----------------------------------------------------------------
+print()
+print("=" * 50)
+print("BACKEND 2: AI HAT+ (Hailo via DeGirum PySDK)")
+print("=" * 50)
+
+print("Loading model...")
+zoo   = dg.connect(dg.LOCAL, "degirum/hailo")
+hailo = zoo.load_model(
+    "mobilenet_v2--224x224_quant_hailort_hailo8l_1",
+    device_id="HAILO8L"   # change to HAILO8 for 26 TOPS variant
+)
+
+print("Warming up (1 run)...")
+_ = hailo(IMAGE_PATH)
+
+print(f"Benchmarking ({N_RUNS} runs)...")
+start = time.perf_counter()
+for _ in range(N_RUNS):
+    hailo_result = hailo(IMAGE_PATH)
+hailo_time = (time.perf_counter() - start) / N_RUNS * 1000
+
+top = hailo_result.results[0]
+print(f"\nTop result: {top['label']} ({top['score']*100:.1f}%)")
+print(f"Average inference time: {hailo_time:.1f} ms per image")
+
+# ----------------------------------------------------------------
+# Summary
+# ----------------------------------------------------------------
+speedup = cpu_time / hailo_time
+
+print()
+print("=" * 50)
+print("  RESULTS SUMMARY")
+print("=" * 50)
+print(f"  CPU  (TensorFlow):  {cpu_time:7.1f} ms per image")
+print(f"  HAT+ (Hailo):       {hailo_time:7.1f} ms per image")
+print(f"  Speedup:            {speedup:7.1f}x faster on HAT+")
+print()
+if speedup >= 10:
+    print("  The AI HAT+ is more than 10x faster than the CPU.")
+elif speedup >= 5:
+    print("  The AI HAT+ is significantly faster than the CPU.")
+else:
+    print("  The AI HAT+ shows a measurable speedup over CPU.")
+print("=" * 50)
+```
+
+Run it:
+
+```bash
+python hailo_vs_cpu.py ~/test_image.jpg
+```
+
+This takes a few minutes to complete (the CPU benchmark is the slow part). Typical results on Pi 5:
+
+```
+==================================================
+  RESULTS SUMMARY
+==================================================
+  CPU  (TensorFlow):    87.4 ms per image
+  HAT+ (Hailo):          4.1 ms per image
+  Speedup:              21.3x faster on HAT+
+==================================================
+```
+
+---
+
+### Step 5: Batch Classification Across Multiple Images
+
+For a richer demo, classify a whole folder of images and display a ranked results table. This illustrates how an edge AI system could process a stream of inputs in real time.
+
+Save as `~/hailo_demo_env/hailo_batch.py`:
+
+```python
+"""
+Batch image classification on Hailo AI HAT+
+Classifies all JPEG/PNG images in a folder and prints a summary table.
+
+Usage:
+    python hailo_batch.py [path/to/image/folder]
+"""
+
+import degirum as dg
+import time
+import sys
+import os
+from pathlib import Path
+
+IMAGE_DIR = sys.argv[1] if len(sys.argv) > 1 else "."
+extensions = {".jpg", ".jpeg", ".png", ".bmp"}
+images = [
+    p for p in Path(IMAGE_DIR).iterdir()
+    if p.suffix.lower() in extensions
+]
+
+if not images:
+    print(f"No images found in {IMAGE_DIR}")
+    sys.exit(1)
+
+print(f"Found {len(images)} image(s) in {IMAGE_DIR}\n")
+
+zoo   = dg.connect(dg.LOCAL, "degirum/hailo")
+model = zoo.load_model(
+    "mobilenet_v2--224x224_quant_hailort_hailo8l_1",
+    device_id="HAILO8L"
+)
+
+print(f"{'Image':<30} {'Top Prediction':<35} {'Confidence':>10}  {'Time':>8}")
+print("-" * 88)
+
+total_time = 0
+for img_path in sorted(images):
+    start  = time.perf_counter()
+    result = model(str(img_path))
+    elapsed = (time.perf_counter() - start) * 1000
+    total_time += elapsed
+
+    top = result.results[0]
+    print(
+        f"  {img_path.name:<28} {top['label']:<35} "
+        f"{top['score']*100:>8.1f}%  {elapsed:>6.1f} ms"
+    )
+
+avg = total_time / len(images)
+print("-" * 88)
+print(f"  {len(images)} images classified   Average: {avg:.1f} ms/image   "
+      f"Total: {total_time:.0f} ms")
+```
+
+Run it with a folder of images:
+
+```bash
+# Put a few images in a test folder first
+mkdir ~/test_images
+cp ~/test_image.jpg ~/test_images/
+# add more images to ~/test_images/ as you like
+
+python hailo_batch.py ~/test_images/
+```
+
+---
+
+## Troubleshooting
+
+| Problem | Solution |
+|---|---|
+| `hailortcli: command not found` | `sudo apt install hailort` then reboot |
+| `ModuleNotFoundError: No module named 'degirum'` | `pip install degirum` inside your venv |
+| `device_id HAILO8L not found` | Run `hailortcli fw-control identify` to confirm your device arch; change `device_id` to `"HAILO8"` if needed |
+| First run hangs on "Loading model" | DeGirum is downloading the `.hef` on first use — needs internet, wait ~30 seconds |
+| Model runs but results look wrong | Check the image loaded correctly with `python3 -c "from PIL import Image; print(Image.open('test_image.jpg').size)"` — should show `(width, height)` |
+| `tensorflow` import fails | `pip install tensorflow` — takes 10–15 min on Pi; alternatively remove the CPU benchmark sections and run HAT+ only |
+| CPU benchmark is very slow | Normal — TensorFlow on Pi CPU is the point of contrast. The HAT+ benchmark is what matters. |
+
+---
+
+## What to Tell Participants
+
+When running these demos with an audience, a few framing points help:
+
+**On MobileNetV2 as a CNN:**
+> "MobileNet is a convolutional neural network — it scans across the image with small filter windows, learning to detect edges, then textures, then shapes, then whole objects. It was specifically designed to be small enough to run on mobile and edge devices. Even so, on the Pi CPU alone it takes around 80–100ms per image."
+
+**On what the HAT+ is doing:**
+> "The AI HAT+ contains a dedicated neural processing unit — silicon designed specifically to run the matrix multiplications that CNNs rely on. It doesn't run general Python code; it only runs the compiled network. That specialisation is why it's 10–20x faster, while using a fraction of the power."
+
+**On the difference from quantum computing:**
+> "Both quantum circuits and neural networks work with probabilities — but via completely different mechanisms. The CNN learns statistical patterns in training data. The quantum circuit exploits superposition and interference in physical qubit states. They're complementary tools, not competitors."
+
+---
+
+## Useful Links
+
+- DeGirum PySDK documentation: https://docs.degirum.com/pysdk/user-guide-pysdk
+- DeGirum Hailo model zoo: https://github.com/DeGirum/hailo_examples/blob/main/hailo_model_zoo.md
+- Hailo RPi5 examples: https://github.com/hailo-ai/hailo-rpi5-examples
+- Raspberry Pi AI HAT+ documentation: https://www.raspberrypi.com/documentation/accessories/ai-hat-plus.html
+- Hailo community forum: https://community.hailo.ai
+
+---
+
+*This guide is for educational use. MobileNet is a trademark of Google. Hailo® is a trademark of Hailo Technologies Ltd.*
 ---
 
 ## Part 5: Troubleshooting Quick Reference
