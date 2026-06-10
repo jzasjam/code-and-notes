@@ -273,7 +273,39 @@ Participants design a quantum circuit; the measurement result determines which d
 
 ---
 
-## Part 3: AI HAT+ 
+
+## Part 3: Troubleshooting Quick Reference
+
+| Problem | Solution |
+|---|---|
+| Demo won't launch | `source venv/RQB2/bin/activate` first |
+| Browser shows blank page | Navigate manually to `http://localhost:5000`; check `lsof -ti:5000` for port conflicts |
+| LEDs not lighting | Check LED strip connected to GPIO pin 18; run `sudo raspi-config` and check LED demo |
+| Qiskit import error | Check venv is active; run `pip list \| grep qiskit` |
+| AI HAT+ not detected | Run `hailortcli fw-control identify`; ensure HAT+ is seated in PCIe M.2 slot |
+| TFLite inference slow | Normal on CPU — 28×28 MNIST is fast; larger images take longer without HAT+ |
+| IBM Quantum connection fails | Check internet connection; API token may have expired — regenerate at quantum.ibm.com |
+
+---
+
+## Useful Links
+
+- RasQberry Two documentation: https://rasqberry.org
+- Qiskit documentation: https://docs.qiskit.org
+- IBM Quantum Learning (free courses): https://learning.quantum.ibm.com
+- Raspberry Pi AI HAT+ product page: https://www.raspberrypi.com/products/ai-hat/
+- Hailo developer zone: https://hailo.ai/developer-zone/
+- Fun with Quantum (Jupyter notebooks): http://fun-with-quantum.org
+- Quantum Paradoxes (Maria Violaris): https://www.mariaviolaris.com/quantum-paradoxes/
+
+---
+
+*RasQberry is an independent educational project. IBM®, IBM Quantum®, Qiskit®, and IBM Quantum System Two are trademarks of IBM Corporation. This guide is for educational use.*
+
+
+---
+
+## Part 4: AI HAT+ 
 
 ### INSTALL AI HAT+
 https://www.raspberrypi.com/news/get-started-with-the-raspberry-pi-ai-hat/
@@ -709,31 +741,3 @@ When running these demos with an audience, a few framing points help:
 
 *This guide is for educational use. MobileNet is a trademark of Google. Hailo® is a trademark of Hailo Technologies Ltd.*
 ---
-
-## Part 5: Troubleshooting Quick Reference
-
-| Problem | Solution |
-|---|---|
-| Demo won't launch | `source venv/RQB2/bin/activate` first |
-| Browser shows blank page | Navigate manually to `http://localhost:5000`; check `lsof -ti:5000` for port conflicts |
-| LEDs not lighting | Check LED strip connected to GPIO pin 18; run `sudo raspi-config` and check LED demo |
-| Qiskit import error | Check venv is active; run `pip list \| grep qiskit` |
-| AI HAT+ not detected | Run `hailortcli fw-control identify`; ensure HAT+ is seated in PCIe M.2 slot |
-| TFLite inference slow | Normal on CPU — 28×28 MNIST is fast; larger images take longer without HAT+ |
-| IBM Quantum connection fails | Check internet connection; API token may have expired — regenerate at quantum.ibm.com |
-
----
-
-## Useful Links
-
-- RasQberry Two documentation: https://rasqberry.org
-- Qiskit documentation: https://docs.qiskit.org
-- IBM Quantum Learning (free courses): https://learning.quantum.ibm.com
-- Raspberry Pi AI HAT+ product page: https://www.raspberrypi.com/products/ai-hat/
-- Hailo developer zone: https://hailo.ai/developer-zone/
-- Fun with Quantum (Jupyter notebooks): http://fun-with-quantum.org
-- Quantum Paradoxes (Maria Violaris): https://www.mariaviolaris.com/quantum-paradoxes/
-
----
-
-*RasQberry is an independent educational project. IBM®, IBM Quantum®, Qiskit®, and IBM Quantum System Two are trademarks of IBM Corporation. This guide is for educational use.*
