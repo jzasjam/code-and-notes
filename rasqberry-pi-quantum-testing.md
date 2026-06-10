@@ -305,9 +305,15 @@ pip install tensorflow numpy matplotlib pillow
 
 > **Note on the AI HAT+:** The Hailo accelerator uses Hailo's `hailort` runtime and a model compiler to convert trained models to `.hef` format. For simplicity, this demo runs TensorFlow inference on the **Pi CPU** first, so participants can see training and inference work without HAT+ setup complexity. Section 3.4 covers accelerating it with the HAT+.
 
+
 ---
 
 **Step 2: Create the training script**
+
+Download the dataset and place into '~/Rasqberry/.keras/datasets'
+# If issues when running the script just grab it from a browser:
+https://storage.googleapis.com/tensorflow/tf-keras-datasets/mnist.npz
+
 
 Save the following as `~/cnn_demo_env/train_mnist_cnn.py`:
 
