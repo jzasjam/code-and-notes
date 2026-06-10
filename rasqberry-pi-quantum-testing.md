@@ -129,6 +129,10 @@ source venv/RQB2/bin/activate
 python3 RQB2-bin/quantum-raspberry-tie.py -int
 ```
 
+**Notes:** 
+Issues when launching - File Not Found as the Python script has been updated to v8 and Sense HAT emulator not displaying the LEDs.
+I needed to launch the Quantum Raspberry Tie from the desktop twice to open the Sense HAT emulator, then used `cd /RasQberry-Two/demos/quantum-raspberry-tie` before lauching with `python QuantumRaspberryTie.v8_0.py`.  
+
 **What it shows:**  
 Quantum circuits are executed (on the local Aer simulator, or IBM Quantum cloud hardware), and measurement results are displayed **live on the LED array**. Each LED pixel represents one qubit's measurement: **blue = |1⟩, red = |0⟩**. The layout of the LEDs mirrors the *actual physical topology* of IBM quantum processors.
 
