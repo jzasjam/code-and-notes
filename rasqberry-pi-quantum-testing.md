@@ -275,6 +275,30 @@ Participants design a quantum circuit; the measurement result determines which d
 
 ## Part 3: AI HAT+ — Simple CNN Example
 
+### INSTALL AI HAT+
+https://www.raspberrypi.com/news/get-started-with-the-raspberry-pi-ai-hat/
+https://www.raspberrypi.com/documentation/computers/ai.html#software
+
+Update and upgrade and ensure firmware is >6 December 2023...
+```bash
+sudo apt update
+sudo apt full-upgrade -y
+sudo rpi-eeprom-update -a
+sudo reboot
+```
+
+Install Dependenciew...
+```bash
+sudo apt install dkms
+sudo apt install hailo-all
+sudo reboot
+```
+
+Verify after roboot
+```bash
+hailortcli fw-control identify
+```
+
 ### 3.1 About the Raspberry Pi AI HAT+
 
 The AI HAT+ attaches to the Raspberry Pi 5's PCIe Gen 3 interface and contains a **Hailo neural network inference accelerator**. It is available in:
@@ -512,6 +536,12 @@ hailortcli fw-control identify
 If not installed, follow the official Hailo documentation at https://hailo.ai/developer-zone/ (free account required to download).
 
 **Step 2: Convert the TensorFlow model**
+
+There is a known bug in certain TensorFlow versions where the bundled flatbuffers library is incompatible. To avoid erros, downgrade the flatbuffers package: 
+
+```bash
+pip install flatbuffers==23.5.26
+```
 
 The Hailo Model Zoo and Dataflow Compiler convert standard formats (TFLite/ONNX) to `.hef`:
 
