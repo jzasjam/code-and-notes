@@ -162,6 +162,64 @@ Quantum measurement is probabilistic. Running the same circuit multiple times gi
 
 **Launch:** Via raspi-config menu or desktop shortcut.
 
+**NOTE:** No demo or code given at https://rasqberry.org/03-quantum-computing-demos/01-demo-list/
+
+Try...
+```python
+"""
+GHZ State Demo — Multi-qubit Entanglement
+For RasQberry Two event days.
+
+Demonstrates a GHZ state: (|000...0⟩ + |111...1⟩) / √2
+When measured, you always get ALL zeros or ALL ones — never a mix.
+That is the signature of entanglement.
+"""
+
+from qiskit import QuantumCircuit
+from qiskit_aer import AerSimulator
+import time
+
+def build_ghz_circuit(n_qubits):
+    qc = QuantumCircuit(n_qubits, n_qubits)
+    qc.h(0)                          # Superposition on first qubit
+    for i in range(n_qubits - 1):
+        qc.cx(i, i + 1)              # Entangle each qubit to the next
+    qc.measure(range(n_qubits), range(n_qubits))
+    return qc
+
+def run_ghz_demo(n_qubits=5, shots=1024):
+    print(f"\n{'='*50}")
+    print(f"  GHZ State Demo — {n_qubits} Qubits")
+    print(f"{'='*50}")
+
+    qc = build_ghz_circuit(n_qubits)
+    print(qc.draw(output='text'))
+
+    print(f"\nRunning {shots} measurements on Aer simulator...")
+    simulator = AerSimulator()
+    job    = simulator.run(qc, shots=shots)
+    counts = job.result().get_counts()
+
+    print("\nResults:")
+    all_zeros = '0' * n_qubits
+    all_ones  = '1' * n_qubits
+    for state, count in sorted(counts.items(), key=lambda x: -x[1]):
+        bar    = '█' * int(count / shots * 40)
+        label  = " ← ALL ZEROS" if state == all_zeros else \
+                 " ← ALL ONES"  if state == all_ones  else \
+                 " ← (unexpected — noise?)"
+        print(f"  |{state}⟩  {count:4d} shots  {bar}{label}")
+
+    print(f"\nKey point: only |{'0'*n_qubits}⟩ and |{'1'*n_qubits}⟩ appear.")
+    print("Measuring one qubit as 0 means ALL others must also be 0.")
+    print("That correlation — with no classical explanation — is entanglement.\n")
+
+if __name__ == "__main__":
+    for n in [3, 5, 8]:
+        run_ghz_demo(n_qubits=n, shots=1024)
+        time.sleep(1)
+```
+
 **What it shows:**  
 The **GHZ (Greenberger–Horne–Zeilinger) state** is a maximally entangled multi-qubit state. For 3 qubits, the state is:
 
