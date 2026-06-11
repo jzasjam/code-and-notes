@@ -350,13 +350,13 @@ Contrasting *classical neural networks* (which the AI HAT+ accelerates) with *qu
 
 ---
 
-## 5.1 About This Guide
+### 5.1 About This Guide
 
 This guide covers running a **real CNN image classification demo** on the Raspberry Pi AI HAT+ (Hailo-8L or Hailo-8) without needing the full Hailo Dataflow Compiler or SDK conversion toolchain. It uses **DeGirum PySDK**, which provides pre-built `.hef` model files with integrated pre/post-processing, and builds up to a direct **CPU vs HAT+ speed comparison** that makes the value of the accelerator immediately tangible.
 
 ---
 
-## 5.2 Prerequisites
+### 5.2 Prerequisites
 
 Before starting, verify the AI HAT+ is detected by the Pi:
 
@@ -384,7 +384,7 @@ Then reboot and retry.
 
 ---
 
-### Step 1: Set Up the Environment
+#### Step 1: Set Up the Environment
 
 Create a virtual environment for the AI HAT+ demos:
 
@@ -404,7 +404,7 @@ pip install tensorflow   # needed for the CPU benchmark in Step 3
 
 ---
 
-### Step 2: Download a Test Image
+#### Step 2: Download a Test Image
 
 The demos below work on any JPEG or PNG. Download a simple test image to start with:
 
@@ -418,7 +418,7 @@ You can substitute any image you like — the model classifies from 1000 ImageNe
 
 ---
 
-### Step 3: Single Image Classification on the HAT+
+#### Step 3: Single Image Classification on the HAT+
 
 Save the following as `~/hailo_demo_env/hailo_classify.py`:
 
@@ -491,13 +491,13 @@ Rank   Label                                         Confidence
 Inference time: 4.2 ms
 ```
 
-## 5.3 What is it doing?
+### 5.3 What is it doing?
 
 MobileNetV2 is a **convolutional neural network** designed specifically for edge devices. It takes a 224×224 pixel image, passes it through a series of convolutional layers that detect progressively complex features (edges → textures → object parts → whole objects), and outputs a probability score across 1000 ImageNet categories. The HAT+ runs the convolutional layers in hardware at high speed — the CPU only handles loading the image and reading the result.
 
 ---
 
-### Step 4: CPU vs HAT+ Speed Comparison
+#### Step 4: CPU vs HAT+ Speed Comparison
 
 This is the most compelling demo — it runs the same MobileNetV2 model on the Pi CPU (via TensorFlow) and on the Hailo HAT+ (via DeGirum), then prints a direct comparison.
 
@@ -625,7 +625,7 @@ This takes a few minutes to complete (the CPU benchmark is the slow part). Typic
 
 ---
 
-### Step 5: Batch Classification Across Multiple Images
+#### Step 5: Batch Classification Across Multiple Images
 
 For a richer demo, classify a whole folder of images and display a ranked results table. This illustrates how an edge AI system could process a stream of inputs in real time.
 
@@ -700,7 +700,7 @@ python hailo_batch.py ~/test_images/
 
 ---
 
-## 5.4 Troubleshooting
+### 5.4 Troubleshooting
 
 | Problem | Solution |
 |---|---|
@@ -714,7 +714,7 @@ python hailo_batch.py ~/test_images/
 
 ---
 
-## 5.5 What to Tell Participants
+### 5.5 What to Tell Participants
 
 When running these demos with an audience, a few framing points help:
 
@@ -729,7 +729,7 @@ When running these demos with an audience, a few framing points help:
 
 ---
 
-## 5.6 Useful Links
+### 5.6 Useful Links
 
 - DeGirum PySDK documentation: https://docs.degirum.com/pysdk/user-guide-pysdk
 - DeGirum Hailo model zoo: https://github.com/DeGirum/hailo_examples/blob/main/hailo_model_zoo.md
