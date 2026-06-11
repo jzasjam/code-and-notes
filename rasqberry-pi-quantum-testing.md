@@ -1,9 +1,9 @@
 # RasQberry Two — Event Preparation Guide
-### Introduction to Quantum Computing with the IBM RasQberry Pi
+## Introduction to Quantum Computing with the IBM RasQberry Pi
 
 ---
 
-## About This Guide
+### About This Guide
 
 This guide is written for event organisers running an introductory Quantum Computing session using a **RasQberry Two** setup (a 3D-printed functional model of IBM Quantum System Two, running on a Raspberry Pi 5 with Qiskit). It also covers the **Raspberry Pi AI HAT+** (Hailo-8L/8 accelerator) and provides a simple CNN walkthrough to contrast classical and quantum AI approaches.
 
@@ -288,7 +288,7 @@ Participants design a quantum circuit; the measurement result determines which d
 
 ---
 
-## Useful Links
+### Useful Links
 
 - RasQberry Two documentation: https://rasqberry.org
 - Qiskit documentation: https://docs.qiskit.org
@@ -331,7 +331,7 @@ Verify after roboot
 hailortcli fw-control identify
 ```
 
-### 3.1 About the Raspberry Pi AI HAT+
+### 4.1 About the Raspberry Pi AI HAT+
 
 The AI HAT+ attaches to the Raspberry Pi 5's PCIe Gen 3 interface and contains a **Hailo neural network inference accelerator**. It is available in:
 
@@ -345,18 +345,18 @@ Contrasting *classical neural networks* (which the AI HAT+ accelerates) with *qu
 
 ---
 
-## Raspberry Pi AI HAT+ — CNN Classification Demo Guide
+## Part 5: Raspberry Pi AI HAT+ — CNN Classification Demo Guide
 ### Running and Benchmarking MobileNet on the Hailo Accelerator
 
 ---
 
-## About This Guide
+## 5.1 About This Guide
 
 This guide covers running a **real CNN image classification demo** on the Raspberry Pi AI HAT+ (Hailo-8L or Hailo-8) without needing the full Hailo Dataflow Compiler or SDK conversion toolchain. It uses **DeGirum PySDK**, which provides pre-built `.hef` model files with integrated pre/post-processing, and builds up to a direct **CPU vs HAT+ speed comparison** that makes the value of the accelerator immediately tangible.
 
 ---
 
-## Prerequisites
+## 5.2 Prerequisites
 
 Before starting, verify the AI HAT+ is detected by the Pi:
 
@@ -491,7 +491,7 @@ Rank   Label                                         Confidence
 Inference time: 4.2 ms
 ```
 
-## What is it doing?
+## 5.3 What is it doing?
 
 MobileNetV2 is a **convolutional neural network** designed specifically for edge devices. It takes a 224×224 pixel image, passes it through a series of convolutional layers that detect progressively complex features (edges → textures → object parts → whole objects), and outputs a probability score across 1000 ImageNet categories. The HAT+ runs the convolutional layers in hardware at high speed — the CPU only handles loading the image and reading the result.
 
@@ -700,7 +700,7 @@ python hailo_batch.py ~/test_images/
 
 ---
 
-## Troubleshooting
+## 5.4 Troubleshooting
 
 | Problem | Solution |
 |---|---|
@@ -714,7 +714,7 @@ python hailo_batch.py ~/test_images/
 
 ---
 
-## What to Tell Participants
+## 5.5 What to Tell Participants
 
 When running these demos with an audience, a few framing points help:
 
@@ -729,7 +729,7 @@ When running these demos with an audience, a few framing points help:
 
 ---
 
-## Useful Links
+## 5.6 Useful Links
 
 - DeGirum PySDK documentation: https://docs.degirum.com/pysdk/user-guide-pysdk
 - DeGirum Hailo model zoo: https://github.com/DeGirum/hailo_examples/blob/main/hailo_model_zoo.md
