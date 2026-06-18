@@ -139,7 +139,7 @@ print(f"  Optimiser:        COBYLA (gradient-free)\n")
 # 3. Build and Train the VQC
 # ----------------------------------------------------------------
 print("Building VQC...")
-sampler = Sampler()
+sampler = StatevectorSampler()
 
 vqc = VQC(
     feature_map=feature_map,
