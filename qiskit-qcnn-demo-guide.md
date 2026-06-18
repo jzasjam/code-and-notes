@@ -64,7 +64,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 from qiskit.circuit.library import ZZFeatureMap, RealAmplitudes
-from qiskit_aer.primitives import Sampler
+from qiskit.primitives import StatevectorSampler
 from qiskit_machine_learning.algorithms import VQC
 from qiskit_machine_learning.utils import algorithm_globals
 from qiskit_algorithms.optimizers import COBYLA
@@ -142,7 +142,6 @@ print("Building VQC...")
 sampler = Sampler()
 
 vqc = VQC(
-    sampler=sampler,
     feature_map=feature_map,
     ansatz=ansatz,
     optimizer=COBYLA(maxiter=100),
