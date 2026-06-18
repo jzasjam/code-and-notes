@@ -100,7 +100,7 @@ X_test = np.array([
 y_test = np.array([0, 0, 1, 1])
 
 print("=" * 55)
-print("  Quantum CNN (VQC) Demo — Qiskit Machine Learning")
+print("  Quantum CNN (VQC) Demo â€” Qiskit Machine Learning")
 print("=" * 55)
 print(f"\nDataset: {len(X_train)} training samples, "
       f"{len(X_test)} test samples")
@@ -114,17 +114,17 @@ num_features = X_train.shape[1]  # 2
 
 # Feature map: encodes classical input into quantum state
 # ZZFeatureMap creates entanglement between qubits proportional
-# to the product of input features — capturing non-linear structure
+# to the product of input features â€” capturing non-linear structure
 feature_map = ZZFeatureMap(
     feature_dimension=num_features,
-    reps=2           # depth of encoding — more reps = richer encoding
+    reps=2           # depth of encoding â€” more reps = richer encoding
 )
 
 # Ansatz: the trainable "layer" of the quantum network
 # RealAmplitudes alternates Ry rotation gates with CNOT entanglement
 ansatz = RealAmplitudes(
     num_qubits=num_features,
-    reps=2,          # depth of ansatz — more reps = more parameters
+    reps=2,          # depth of ansatz â€” more reps = more parameters
     entanglement='linear'
 )
 
@@ -145,7 +145,6 @@ vqc = VQC(
     feature_map=feature_map,
     ansatz=ansatz,
     optimizer=COBYLA(maxiter=100),
-    callback=callback,
 )
 
 print("Training quantum circuit parameters...")
@@ -154,13 +153,15 @@ print("(Each iteration adjusts gate angles via the parameter shift rule)\n")
 # Track iterations with a simple callback
 iteration_log = []
 
-def callback(nfev, x, fx, dx, accept=None):
-    iteration_log.append(fx)
+def callback(weights, obj_func_eval):
+    iteration_log.append(obj_func_eval)
     if len(iteration_log) % 20 == 0:
-        print(f"  Iteration {len(iteration_log):3d} — "
-              f"loss: {fx:.4f}")
+        print(f"  Iteration {len(iteration_log):3d} â€” "
+              f"loss: {obj_func_eval:.4f}")
 
+vqc.callback = callback
 vqc.fit(X_train, y_train)
+
 # ----------------------------------------------------------------
 # 4. Evaluate
 # ----------------------------------------------------------------
@@ -179,7 +180,7 @@ print("  " + "-" * 48)
 
 predictions = vqc.predict(X_test)
 for i, (x, true, pred) in enumerate(zip(X_test, y_test, predictions)):
-    correct = "✓" if true == pred else "✗"
+    correct = "âœ“" if true == pred else "âœ—"
     print(f"  {str(x):<20} {true:>6}  {pred:>10}  {correct:>8}")
 
 # ----------------------------------------------------------------
@@ -199,18 +200,18 @@ print("""
      Entanglement between qubits captures non-linear structure
      that classical linear classifiers cannot separate.
 
-  2. The ansatz gates are the "weights" — their angles were
+  2. The ansatz gates are the "weights" â€” their angles were
      adjusted during training, just like a classical network.
 
   3. The parameter shift rule computes gradients of a quantum
      circuit without backpropagation: each parameter is shifted
-     by ±π/2 and the difference gives the gradient.
+     by Â±Ï€/2 and the difference gives the gradient.
 
   4. This is a hybrid quantum-classical model: quantum circuit
      for feature extraction, classical optimiser for training.
 
   5. On real quantum hardware, noise in the gates would affect
-     accuracy — this is a key open challenge in quantum ML.
+     accuracy â€” this is a key open challenge in quantum ML.
 """)
 ```
 
