@@ -145,6 +145,7 @@ vqc = VQC(
     feature_map=feature_map,
     ansatz=ansatz,
     optimizer=COBYLA(maxiter=100),
+    callback=callback,
 )
 
 print("Training quantum circuit parameters...")
@@ -153,15 +154,13 @@ print("(Each iteration adjusts gate angles via the parameter shift rule)\n")
 # Track iterations with a simple callback
 iteration_log = []
 
-def callback(weights, obj_func_eval):
-    iteration_log.append(obj_func_eval)
+def callback(nfev, x, fx, dx, accept=None):
+    iteration_log.append(fx)
     if len(iteration_log) % 20 == 0:
         print(f"  Iteration {len(iteration_log):3d} — "
-              f"loss: {obj_func_eval:.4f}")
+              f"loss: {fx:.4f}")
 
-vqc.callback = callback
 vqc.fit(X_train, y_train)
-
 # ----------------------------------------------------------------
 # 4. Evaluate
 # ----------------------------------------------------------------
