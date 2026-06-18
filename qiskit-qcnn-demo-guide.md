@@ -67,6 +67,7 @@ from qiskit.circuit.library import ZZFeatureMap, RealAmplitudes
 from qiskit_aer.primitives import Sampler
 from qiskit_machine_learning.algorithms import VQC
 from qiskit_machine_learning.utils import algorithm_globals
+from qiskit_algorithms.optimizers import COBYLA
 
 algorithm_globals.random_seed = 42
 
@@ -144,8 +145,7 @@ vqc = VQC(
     sampler=sampler,
     feature_map=feature_map,
     ansatz=ansatz,
-    optimizer='COBYLA',
-    max_iter=100,
+    optimizer=COBYLA(maxiter=100),
 )
 
 print("Training quantum circuit parameters...")
