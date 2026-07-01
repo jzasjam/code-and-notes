@@ -157,7 +157,7 @@ def shu_logo(delay=2):
 
         chunked_show(pixels)
 
-        time.sleep(delay)v
+        time.sleep(delay)
 
 # --------------------------------------------------
 # Main
